@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor PEM a Excel - Cierres Z Fiscales</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            transform: scale(1.02);
+        }
+        
+        .upload-area.dragover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #764ba2;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .results-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .results-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .results-table tbody tr:hover {
+            background: #f8f9fa;
+            transition: background 0.2s ease;
+        }
+        
+        .results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            border: 1px solid #fcc;
+        }
+        
+        .error.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Conversor PEM a Excel</h1>
+        <p class="subtitle">Extrae datos de cierres Z fiscales desde archivos PEM</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">Arrastra tu archivo PEM aquí o haz clic para seleccionar</p>
+            <input type="file" id="fileInput" accept=".pem,.PEM">
+        </div>
+        
+        <div class="file-info" id="fileInfo">
+            <div class="info-row">
+                <span class="info-label">Archivo:</span>
+                <span class="info-value" id="fileName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Emisor:</span>
+                <span class="info-value" id="emisorName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">CUIT:</span>
+                <span class="info-value" id="cuitNumber">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Punto de Venta:</span>
+                <span class="info-value" id="puntoVenta">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Cierres Z encontrados:</span>
+                <span class="info-value" id="cierresCount">-</span>
+            </div>
+        </div>
+        
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="results" id="results">
+            <div class="results-header">📋 Resumen de Cierres Z</div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>N° Cierre</th>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Desde</th>
+                            <th>Hasta</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
+            <button class="download-btn" id="downloadBtn">⬇️ Descargar Excel</button>
+        </div>
+        
+        <div class="error" id="errorMessage"></div>
+    </div>
+
+    <script>
+        let processedData = null;
+        let emisorData = null;
+        
+        // Elementos del DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        const spinner = document.getElementById('spinner');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // Event listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        downloadBtn.addEventListener('click', downloadExcel);
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.pem')) {
+                showError('Por favor, selecciona un archivo PEM válido.');
+                return;
+            }
+            
+            document.getElementById('fileName').textContent = file.name;
+            showSpinner();
+            hideError();
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    processPEMFile(e.target.result);
+                } catch (error) {
+                    showError('Error al procesar el archivo: ' + error.message);
+                    hideSpinner();
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function processPEMFile(pemContent) {
+            // Extraer contenido Base64
+            const base64Lines = pemContent
+                .split('\n')
+                .filter(line => !line.includes('-----BEGIN') && !line.includes('-----END'))
+                .join('');
+            
+            // Decodificar Base64
+            const decodedBytes = atob(base64Lines);
+            
+            // Extraer XML
+            let xmlContent = '';
+            let inXML = false;
+            
+            for (let i = 0; i < decodedBytes.length; i++) {
+                const char = decodedBytes.charAt(i);
+                
+                if (!inXML && char === '<' && i + 4 < decodedBytes.length) {
+                    const next4 = decodedBytes.substring(i, i + 5);
+                    if (next4 === '<?xml') {
+                        inXML = true;
+                    }
+                }
+                
+                if (inXML) {
+                    const code = decodedBytes.charCodeAt(i);
+                    if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9) {
+                        xmlContent += char;
+                    }
+                    
+                    if (xmlContent.includes('</tns:auditoria>')) {
+                        break;
+                    }
+                }
+            }
+            
+            if (!xmlContent) {
+                throw new Error('No se pudo extraer el contenido XML del archivo PEM');
+            }
+            
+            // Procesar XML
+            parseXMLContent(xmlContent);
+        }
+        
+        function parseXMLContent(xmlContent) {
+            // Función auxiliar para extraer valores de etiquetas
+            function extractValue(xml, tag) {
+                const regex = new RegExp(`<${tag}>([^<]*)</${tag}>`);
+                const match = regex.exec(xml);
+                return match ? match[1].trim() : null;
+            }
+            
+            // Extraer datos del emisor
+            emisorData = {
+                nombreFantasia: extractValue(xmlContent, 'nombreFantasiaEmisor'),
+                razonSocial: extractValue(xmlContent, 'razonSocialEmisor'),
+                cuit: extractValue(xmlContent, 'cuitEmisor'),
+                domicilio: extractValue(xmlContent, 'domicilioComercialEmisor'),
+                puntoVenta: extractValue(xmlContent, 'numeroPuntoVenta')
+            };
+            
+            // Mostrar información del emisor
+            document.getElementById('emisorName').textContent = emisorData.razonSocial || '-';
+            document.getElementById('cuitNumber').textContent = emisorData.cuit || '-';
+            document.getElementById('puntoVenta').textContent = emisorData.puntoVenta || '-';
+            
+            // Procesar cierres Z
+            const cierresZ = [];
+            const cierresZRegex = /<cierreZFecha>([\s\S]*?)<\/cierreZFecha>/g;
+            let match;
+            
+            while ((match = cierresZRegex.exec(xmlContent)) !== null) {
+                const cierreContent = match[1];
+                
+                const fechaHora = extractValue(cierreContent, 'fechaHoraEmisionCierreZ');
+                const numeroZ = extractValue(cierreContent, 'numeroZ');
+                
+                // Extraer conjuntos de comprobantes
+                const conjuntosRegex = /<conjuntoComprobantesFiscales>([\s\S]*?)<\/conjuntoComprobantesFiscales>/g;
+                let conjuntoMatch;
+                
+                while ((conjuntoMatch = conjuntosRegex.exec(cierreContent)) !== null) {
+                    const conjuntoContent = conjuntoMatch[1];
+                    
+                    const conjunto = {
+                        numeroZ: numeroZ,
+                        fechaHora: fechaHora,
+                        codigoTipo: extractValue(conjuntoContent, 'codigoTipoComprobante'),
+                        primerNumero: extractValue(conjuntoContent, 'primerNumeroComprobante'),
+                        ultimoNumero: extractValue(conjuntoContent, 'ultimoNumeroComprobante'),
+                        cantidad: extractValue(conjuntoContent, 'cantidadComprobantes'),
+                        totalGravado: extractValue(conjuntoContent, 'importeTotalGravado'),
+                        totalNoGravado: extractValue(conjuntoContent, 'importeTotalNoGravado') || '0',
+                        totalExento: extractValue(conjuntoContent, 'importeTotalExento') || '0',
+                        totalComprobantes: extractValue(conjuntoContent, 'importeTotalComprobantes')
+                    };
+                    
+                    // Extraer datos de IVA si existen
+                    const ivaData = [];
+                    const ivaRegex = /<subtotalIVA>[\s\S]*?<porcentajeIVA>([\d.]+)<\/porcentajeIVA>[\s\S]*?<importe>([\d.]+)<\/importe>[\s\S]*?<\/subtotalIVA>/g;
+                    let ivaMatch;
+                    while ((ivaMatch = ivaRegex.exec(conjuntoContent)) !== null) {
+                        ivaData.push({
+                            porcentaje: ivaMatch[1],
+                            importe: ivaMatch[2]
+                        });
+                    }
+                    conjunto.iva = ivaData;
+                    
+                    cierresZ.push(conjunto);
+                }
+            }
+            
+            processedData = cierresZ;
+            document.getElementById('cierresCount').textContent = cierresZ.length;
+            
+            // Mostrar resultados
+            displayResults(cierresZ);
+            fileInfo.classList.add('show');
+            results.classList.add('show');
+            hideSpinner();
+        }
+        
+        function displayResults(data) {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.numeroZ}</td>
+                    <td>${formatDate(item.fechaHora)}</td>
+                    <td>${getComprobanteName(item.codigoTipo)}</td>
+                    <td>${item.primerNumero}</td>
+                    <td>${item.ultimoNumero}</td>
+                    <td>${formatNumber(item.totalComprobantes)}</td>
+                `;
+            });
+        }
+        
+        function downloadExcel() {
+            if (!processedData || processedData.length === 0) {
+                showError('No hay datos para exportar');
+                return;
+            }
+            
+            // Preparar datos para Excel
+            const excelData = [];
+            
+            // Agregar información del emisor
+            excelData.push(['Emisor', emisorData.razonSocial || '']);
+            excelData.push(['CUIT', emisorData.cuit || '']);
+            excelData.push(['Punto de Venta', emisorData.puntoVenta || '']);
+            
+            // Agregar encabezados
+            excelData.push([
+                'N Cierre',
+                'Fecha CierreZ',
+                'Tipo Comprobante',
+                'Primer Comprobante',
+                'Ultimo Comprobante',
+                'Importe Total',
+                'Total Gravado',
+                'Total No Gravado',
+                'Total Exento',
+                'IVA 10.5%',
+                'IVA 21%'
+            ]);
+            
+            // Agregar datos
+            processedData.forEach(item => {
+                const iva105 = item.iva.find(i => i.porcentaje === '10.50')?.importe || '0';
+                const iva21 = item.iva.find(i => i.porcentaje === '21.00')?.importe || '0';
+                
+                excelData.push([
+                    item.numeroZ,
+                    item.fechaHora,
+                    item.codigoTipo,
+                    item.primerNumero,
+                    item.ultimoNumero,
+                    item.totalComprobantes,
+                    item.totalGravado,
+                    item.totalNoGravado,
+                    item.totalExento,
+                    iva105,
+                    iva21
+                ]);
+            });
+            
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // Ajustar ancho de columnas
+            const colWidths = [
+                {wch: 10}, // N Cierre
+                {wch: 20}, // Fecha
+                {wch: 15}, // Tipo
+                {wch: 18}, // Primer
+                {wch: 18}, // Ultimo
+                {wch: 15}, // Total
+                {wch: 15}, // Gravado
+                {wch: 15}, // No Gravado
+                {wch: 15}, // Exento
+                {wch: 12}, // IVA 10.5
+                {wch: 12}  // IVA 21
+            ];
+            ws['!cols'] = colWidths;
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Cierres Z');
+            
+            // Descargar archivo
+            const fileName = `Cierres_Z_${emisorData.cuit}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('es-AR');
+        }
+        
+        function formatNumber(num) {
+            if (!num) return '0.00';
+            return parseFloat(num).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        
+        function getComprobanteName(codigo) {
+            const tipos = {
+                '81': 'FA',
+                '82': 'NDA',
+                '83': 'TIQ',
+                '88': 'NCR'
+            };
+            return tipos[codigo] || codigo;
+        }
+        
+        function showSpinner() {
+            spinner.classList.add('show');
+        }
+        
+        function hideSpinner() {
+            spinner.classList.remove('show');
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+        
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
